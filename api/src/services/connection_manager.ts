@@ -17,10 +17,10 @@ export class ConnectionManager {
         logging: {
             logger: (level: string, message: any) => Log[!Log[level] ? 'debug' : level](message),
             logQueries: true,
-            logSchemaCreation: true,
+            logSchemaCreation: false,
             logFailedQueryError: true,
         },
-        autoSchemaSync: true,
+        autoSchemaSync: false,
         entities: [__dirname + '/../models/{*.ts,*.js}'],
     };
 

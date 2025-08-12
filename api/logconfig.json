@@ -1,19 +1,14 @@
 {
-    "appenders": [{
-            "type": "file",
-            "filename": "logs/log_file.log",
-            "maxLogSize": 20480000,
-            "backups": 10,
-            "category": "default"
-        },
-        {
-            "type": "console",
-            "category": "console"
-        }
-    ],
-    "levels": {
-        "relative-logger": "ALL",
-        "console": "ALL"
-    },
-    "replaceConsole": true
+  "appenders": {
+    "console": { "type": "console" },
+    "file": {
+      "type": "file",
+      "filename": "logs/app.log",
+      "maxLogSize": 20480000,
+      "backups": 10
+    }
+  },
+  "categories": {
+    "default": { "appenders": ["console", "file"], "level": "debug" }
+  }
 }

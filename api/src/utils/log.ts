@@ -1,5 +1,4 @@
-import * as Log4js from 'log4js';
-import { Logger, getLogger } from 'log4js';
+import { Logger, configure, getLogger, levels } from 'log4js';
 import * as Path from 'path';
 
 export class Log {
@@ -7,9 +6,9 @@ export class Log {
     private static logger: Logger;
 
     static init() {
-        Log4js.configure(Path.join(__dirname, '../../logconfig.json'));
+        configure(Path.join(__dirname, '../../logconfig.json'));
         Log.logger = getLogger('default');
-        Log.logger.setLevel(Log4js.levels.DEBUG);
+        Log.logger.level = levels.DEBUG;
     }
 
     static info(info: string) {

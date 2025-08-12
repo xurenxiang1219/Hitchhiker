@@ -67,6 +67,10 @@ export default class UserController extends BaseController {
     @GET('/user/me')
     async getUserInfo(ctx: Koa.Context): Promise<ResObject> {
         const user = <User>(<any>ctx).session.user;
+        if (!user) {
+            // not logged in
+            return { success: false, message: 'Not logged in' };
+        }
         return await this.tryLogin(user, true);
     }
 

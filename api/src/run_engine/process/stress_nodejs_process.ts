@@ -38,6 +38,8 @@ function createWS(): WS {
 
 const connect = function () {
 
+    const url = Setting.instance.stressHost;
+    Log.info(`nodejs stress process - connecting to ${url}`);
     ws = createWS();
 
     ws.on('open', function open() {
@@ -60,14 +62,31 @@ const connect = function () {
     });
 
     ws.on('close', (code, msg) => {
-        Log.error(`nodejs stress process - close ${code}: ${msg}`);
+        let reason: string;
+        try {
+            if (Buffer.isBuffer(msg)) {
+                reason = msg.toString();
+            } else if (typeof msg === 'string') {
+                reason = msg;
+            } else {
+                reason = JSON.stringify(msg);
+            }
+        } catch (_) {
+            reason = String(msg);
+        }
+        Log.error(`nodejs stress process - close ${code}: ${reason}`);
         Log.info('will retry.');
         ws = null;
         setTimeout(connect, restartDelay);
     });
 
     ws.on('error', err => {
-        Log.error(`nodejs stress process - error: ${err}`);
+        const detail = (err && (err as any).stack) ? (err as any).stack : (typeof err === 'string' ? err : JSON.stringify(err));
+        Log.error(`nodejs stress process - error: ${detail}`);
+        // Retry on connection errors like ECONNREFUSED
+        try { ws && ws.close && ws.close(); } catch (_) {}
+        ws = null;
+        setTimeout(connect, restartDelay);
     });
 };
 
@@ -75,7 +94,16 @@ connect();
 
 function send(msg: StressMessage) {
     Log.info(`nodejs stress process - send message with type ${msg.type} and status: ${msg.status}`);
-    ws.send(JSON.stringify(msg));
+    if (!ws || ws.readyState !== WS.OPEN) {
+        Log.warn(`nodejs stress process - websocket not open (state=${ws ? ws.readyState : 'null'}), skip send`);
+        return;
+    }
+    try {
+        ws.send(JSON.stringify(msg));
+    } catch (e) {
+        const detail = (e && (e as any).stack) ? (e as any).stack : String(e);
+        Log.error(`nodejs stress process - send failed: ${detail}`);
+    }
 }
 
 function handleMsg(msg: StressRequest) {
