@@ -28,7 +28,7 @@ router.post('/setup/env', (ctx) => {
     ctx.body = stdout;
 });
 
-app.use(KoaStatic(path.join(__dirname, 'public'), { gzip: true }))
+app.use((KoaStatic(path.join(__dirname, 'public'), { gzip: true }) as any))
     .use(Bodyparser())
     .use(router.routes())
     .use(router.allowedMethods());

@@ -10,7 +10,7 @@ import { ObjectLiteral } from 'typeorm/common/ObjectLiteral';
 import { ScheduleRecordService } from './schedule_record_service';
 import { ScheduleRecord } from '../models/schedule_record';
 import { TimerType } from '../common/enum/period';
-import { DateUtil } from '../common/utils/date_util';
+import { DateUtil } from '../utils/date_util';
 
 export class ScheduleService {
 

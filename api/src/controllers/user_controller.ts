@@ -7,7 +7,7 @@ import { DtoUser } from '../common/interfaces/dto_user';
 import { SessionService } from '../services/session_service';
 import { Message } from '../utils/message';
 import { RegToken } from '../interfaces/reg_token';
-import { DateUtil } from '../common/utils/date_util';
+import { DateUtil } from '../utils/date_util';
 import { Setting } from '../utils/setting';
 import { StringUtil } from '../utils/string_util';
 import { MailService } from '../services/mail_service';

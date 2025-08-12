@@ -77,7 +77,7 @@ export class BackupService {
                     reject(err);
                 } else {
                     Log.info('dump mysql success');
-                    resolve();
+                    resolve(undefined);
                 }
             });
         });

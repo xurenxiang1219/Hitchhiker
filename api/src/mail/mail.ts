@@ -150,7 +150,7 @@ export class Mail {
                 reject(err);
             } else {
                 Log.info('mail: send mail success');
-                resolve();
+                resolve(undefined);
             }
         }));
     }

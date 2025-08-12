@@ -17,7 +17,7 @@ import { CollectionService } from '../services/collection_service';
 import { ProjectService } from '../services/project_service';
 import { MailService } from '../services/mail_service';
 import { Log } from '../utils/log';
-import { DateUtil } from '../common/utils/date_util';
+import { DateUtil } from '../utils/date_util';
 import { RecordCategory } from '../common/enum/record_category';
 import { Sandbox } from './sandbox';
 import { Setting } from '../utils/setting';
