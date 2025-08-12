@@ -14,9 +14,9 @@ interface LoInputState { }
 
 class LoInput extends React.Component<LoInputProps, LoInputState> {
     public render() {
-        const { intl, placeholderId } = this.props;
+        const { intl, placeholderId, ...rest } = this.props as any;
         return (
-            <Input {...this.props} placeholder={intl.formatMessage({ id: placeholderId })} />
+            <Input {...rest} placeholder={intl.formatMessage({ id: placeholderId })} />
         );
     }
 }

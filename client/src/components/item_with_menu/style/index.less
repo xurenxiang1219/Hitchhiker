@@ -1,20 +1,10 @@
 @import '../../../style/colors.less';
 .item-with-menu {
     width: 100%;
-    display: inline-block;
-    padding-right: 28px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    .item-with-menu-icon-visible,
-    &:hover .item-with-menu-icon {
-        display: inline;
-        position: absolute;
-        top: calc(50% - 8px);
-        right: 8px;
-        font-size: 18px;
-        margin-left: 16px;
-        vertical-align: text-bottom;
-    }
+    display: flex;
+    align-items: center;
+    position: relative;
+    height: 100%;
 }
 
 .collection-item .ant-menu-submenu-title {
@@ -29,27 +19,41 @@
 .item-with-menu-icon {
     display: none;
     font-weight: bold;
+    font-size: 18px;
+    margin-left: 8px;
+    flex-shrink: 0;
     &:hover {
         background: rgba(89, 89, 89, 0.1);
     }
 }
 
-.item-with-menu-name {
-    vertical-align: bottom;
+.item-with-menu-icon-visible,
+.ant-menu-item:hover .item-with-menu-icon,
+.ant-menu-submenu-title:hover .item-with-menu-icon,
+.item-with-menu:hover .item-with-menu-icon {
     display: inline-block;
-    width: calc(100% - 48px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 1px;
-    >div {
+}
+
+.item-with-menu-name {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    .item-with-menu-title {
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: 1.2;
     }
     .item-with-menu-subname {
         font-size: 12px;
         color: @place-holder-color;
-        margin-top: -8px;
-        margin-bottom: 2px;
+        line-height: 1.2;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 

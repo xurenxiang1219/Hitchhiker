@@ -86,14 +86,12 @@ class ItemWithMenu extends React.Component<ItemWithMenuProps, ItemWithMenuState>
         const { isEdit, isVisible, name } = this.state;
         const iconClassName = 'item-with-menu-icon' + (isVisible ? ' item-with-menu-icon-visible' : '');
         const nameStyle = isEdit ? {} : { display: 'none' };
-        const lineHeight = subName ? '30px' : '';
-
         return (
             <span className={`${className} item-with-menu`}>
                 {isLoading ? <Icon className="c-icon item-loading-anim" type="sync" /> : icon}
                 <span className="item-with-menu-name">
                     <Tooltip mouseEnterDelay={1} placement="top" title={this.props.name}>
-                        <div className="item-with-menu-title" style={{ lineHeight }}>
+                        <div className="item-with-menu-title">
                             <Input
                                 className="item-with-menu-input"
                                 spellCheck={false}
@@ -110,7 +108,7 @@ class ItemWithMenu extends React.Component<ItemWithMenuProps, ItemWithMenuState>
                     </Tooltip>
                     {
                         subName ? (
-                            <div className="item-with-menu-subname" style={{ lineHeight }}>
+                            <div className="item-with-menu-subname">
                                 {subName}
                             </div>
                         ) : ''

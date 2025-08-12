@@ -11,6 +11,21 @@
 .collection-tree {
     text-align: left;
     background: @panel-background;
+    
+    .ant-menu-item {
+        display: flex;
+        align-items: center;
+        height: 30px;
+        line-height: 30px;
+        padding: 0 !important;
+        
+        > div {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+    }
 }
 
 .collection-tree-bottom {
@@ -28,6 +43,27 @@
         margin-bottom: 4px;
         height: 60px;
         line-height: 60px;
+        // Use flex to allow subname visibility within fixed height
+        display: flex;
+        align-items: center;
+        
+        > div {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        
+        // Ensure the item-with-menu takes full width
+        .item-with-menu {
+            width: 100%;
+            padding-right: 8px;
+        }
+        
+        // Hide the submenu arrow as we have our own menu icon
+        .ant-menu-submenu-arrow {
+            display: none;
+        }
+        
         div.item-with-menu-title {
             font-size: 16px;
         }
@@ -67,25 +103,44 @@
 }
 
 .record {
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    width: 100%;
     .record-icon {
         display: inline-block;
         width: 48px;
         min-width: 48px;
         text-align: center;
+        flex-shrink: 0;
     }
 }
 
 .record-in-folder {
     margin-left: 32px;
-    .item-with-menu-name {
-        padding-right: 32px;
-    }
+}
+
+// Ensure all records (both in folder and not) have proper spacing for menu icon
+.collection-tree .record.item-with-menu {
+    padding-right: 8px;
 }
 
 .folder>div[aria-expanded] {
     height: 30px !important;
     line-height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 !important;
+    
+    > div {
+        width: 100%;
+        display: flex;
+        align-items: center;
+    }
+    
+    .item-with-menu {
+        width: 100%;
+        padding-right: 8px;
+    }
 }
 
 .folder-item-container {
@@ -93,23 +148,27 @@
 }
 
 .record-item-badge {
-   position: absolute;
+    position: absolute;
+    top: 1px;
+    left: 38px;
+    z-index: 10;
 
     .ant-badge-count {
-        position: absolute;
-        height: 16px;
-        border-radius: 10px;
-        min-width: 16px;
+        position: relative;
+        height: 14px;
+        border-radius: 7px;
+        min-width: 14px;
         background: #f04134;
         color: #fff;
-        line-height: 16px;
+        line-height: 14px;
         text-align: center;
-        padding: 0 6px; 
-        font-size: 10px;
+        padding: 0 3px; 
+        font-size: 9px;
         white-space: nowrap;
-        transform-origin: -10% center;
-        font-family: tahoma;
-        box-shadow: 0 0 0 1px #fff;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        transform: none;
     }
 }
 

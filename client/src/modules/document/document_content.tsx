@@ -6,7 +6,6 @@ import { getDocumentDisplayCollectionSelector } from '../../components/collectio
 import { DtoRecord } from '../../common/interfaces/dto_record';
 import * as _ from 'lodash';
 import { DtoHeader } from '../../common/interfaces/dto_header';
-import HttpMethodIcon from '../../components/font_icon/http_method_icon';
 import HighlightCode from '../../components/highlight_code';
 import './style/index.less';
 import { DataMode } from '../../misc/custom_type';
@@ -17,7 +16,7 @@ import { RecordCategory } from '../../misc/record_category';
 import { mainTpl } from './templates/default';
 import { TemplateUtil } from '../../utils/template_util';
 import EnvironmentSelect from '../../components/environment_select';
-import { Button } from 'antd';
+// use a styled anchor instead of antd Button to avoid typing issues in current @types versions
 import { DtoEnvironment } from '../../common/interfaces/dto_environment';
 import { noEnvironment } from '../../misc/constants';
 import LocalesString from '../../locales/string';
@@ -56,49 +55,183 @@ class DocumentContent extends React.Component<DocumentContentProps, DocumentCont
 
     container: any;
 
-    private renderHeaders = (name: string, headers: DtoHeader[]) => {
-        return (
-            <div className="document-block">
-                <div className="document-header-name">{name}</div>
-                {
-                    headers.filter(h => h.isActive).map(h => (
-                        <div key={h.id} className="document-header-row">
-                            <div className="col-2 document-header-key">{h.key}</div>
-                            <div className="col-4 document-header-value">{h.value}</div>
-                            <div className="col-4 document-header-desc">{h.description}</div>
-                        </div>
-                    ))
-                }
-            </div>
-        );
-    }
+    private renderParamTable = (rows: Array<{ id?: string, key: string, value?: string, description?: string, tag?: string }>) => (
+        <table className="param-table">
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Description</th>
+                    <th>Sample</th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows.map((r, idx) => (
+                    <tr key={r.id || `row-${idx}`}>
+                        <td className="param-key">
+                            {r.tag ? <span className={`kv-tag kv-${r.tag.toLowerCase()}`}>{r.tag}</span> : null}
+                            <span className="mono">{r.key}</span>
+                        </td>
+                        <td className="param-desc">{r.description || ''}</td>
+                        <td className="param-value mono">{r.value || ''}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    );
+
+    // Content-Type 单独不再展示，合并在 Parameter 表格中
 
     private recordName = (id: string, name?: string, method?: string) => {
+        const m = (method || 'GET').toUpperCase();
         return (
             <div className="document-record-name">
-                <span id={id} className="document-method-icon">
-                    <HttpMethodIcon fontSize={16} httpMethod={(method || 'GET').toUpperCase()} />
-                </span>
-                {name || ''}
+                <span className={`method-badge method-${m.toLowerCase()}`}>{m}</span>
+                <span className="record-title" id={id}>{name || ''}</span>
             </div>
         );
     }
 
-    private recordUrl = (url?: string) => <div className="document-record-url">{url || ''}</div>;
+    // Description/URL 统一在 Overview 表中展示
 
-    private recordDesc = (description?: string) => <div className="document-record-desc">{description || ''}</div>;
+    private renderDataMutation = () => {
+        // 解析标准返回结构
+        const sampleResponse = {
+            status: 'success',
+            err_code: '',
+            err_msg: '',
+            data: null
+        };
+        
+        const mutations = this.extractResponseStructure(sampleResponse, 1);
+        
+        return (
+            <div className="section">
+                <div className="section-title">Data Mutation</div>
+                <table className="param-table">
+                    <thead>
+                        <tr>
+                            <th>Lvl</th>
+                            <th>Output</th>
+                            <th>Description</th>
+                            <th>Sample</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {mutations.map((item, idx) => (
+                            <tr key={idx}>
+                                <td>{item.level}</td>
+                                <td className="mono">{item.key}</td>
+                                <td>{item.description}</td>
+                                <td className="mono">{item.sample}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        );
+    }
 
-    private recordParams = (queryStrings?: DtoHeader[]) => queryStrings && queryStrings.length > 0 ? <div>{(this.renderHeaders('PARAMS', queryStrings || []))}</div> : '';
+    private extractResponseStructure = (obj: any, level: number): Array<{
+        level: number;
+        key: string;
+        description: string;
+        sample: string;
+    }> => {
+        const result: Array<{ level: number; key: string; description: string; sample: string; }> = [];
+        
+        if (typeof obj === 'object' && obj !== null) {
+            Object.keys(obj).forEach(key => {
+                const value = obj[key];
+                let description = '';
+                let sample = '';
+                
+                switch (key) {
+                    case 'status':
+                        description = '请求状态';
+                        sample = 'success';
+                        break;
+                    case 'err_code':
+                        description = '错误代码';
+                        sample = '';
+                        break;
+                    case 'err_msg':
+                        description = '错误信息';
+                        sample = '';
+                        break;
+                    case 'data':
+                        description = '返回数据';
+                        sample = 'null';
+                        break;
+                    default:
+                        description = '';
+                        sample = typeof value === 'string' ? value : JSON.stringify(value);
+                }
+                
+                result.push({
+                    level,
+                    key,
+                    description,
+                    sample
+                });
+                
+                // 如果是对象且不为null，递归处理子级
+                if (typeof value === 'object' && value !== null && Object.keys(value).length > 0) {
+                    result.push(...this.extractResponseStructure(value, level + 1));
+                }
+            });
+        }
+        
+        return result;
+    }
 
-    private recordHeaders = (headers?: DtoHeader[]) => headers && headers.length > 0 ? <div>{(this.renderHeaders('HEADERS', headers || []))}</div> : '';
+    private renderBasicInfo = (method?: string, url?: string, description?: string) => {
+        const m = (method || 'GET').toUpperCase();
+        return (
+            <table className="basic-info-table">
+                <tbody>
+                    <tr>
+                        <td className="info-key">Description</td>
+                        <td className="info-value">{description || ''}</td>
+                    </tr>
+                    <tr>
+                        <td className="info-key">URL</td>
+                        <td className="info-value mono">{url || ''}</td>
+                    </tr>
+                    <tr>
+                        <td className="info-key">Content-Type</td>
+                        <td className="info-value">application/json</td>
+                    </tr>
+                </tbody>
+            </table>
+        );
+    }
+
+    private recordParameters = (headers?: DtoHeader[], queryStrings?: DtoHeader[], formData?: DtoHeader[]) => {
+        const rows: Array<{ id?: string, key: string, value?: string, description?: string, tag?: string }> = [];
+        (headers || []).filter(h => h.isActive).forEach(h => rows.push({ id: h.id, key: `header ${h.key}`, value: h.value, description: h.description, tag: 'Header' }));
+        (queryStrings || []).filter(q => q.isActive).forEach(q => rows.push({ id: q.id, key: `${q.key}`, value: q.value, description: q.description, tag: 'Query' }));
+        (formData || []).filter(f => f.isActive).forEach(f => rows.push({ id: f.id, key: `${f.key}`, value: f.value, description: f.description, tag: 'Form' }));
+        if (rows.length === 0) { return null; }
+        return (
+            <div className="document-block">
+                <div className="document-header-name">Parameter</div>
+                {this.renderParamTable(rows)}
+            </div>
+        );
+    }
 
     private recordBody = (dataMode?: DataMode, body?: string, formData?: DtoHeader[]) => {
         if (dataMode === DataMode.urlencoded) {
-            return formData && formData.length > 0 ? <div>{(this.renderHeaders('FORM DATA', formData || []))}</div> : '';
+            return formData && formData.length > 0 ? (
+                <div className="document-block">
+                    <div className="document-header-name">Parameter</div>
+                    {this.renderParamTable((formData || []).filter(f => f.isActive).map(f => ({ id: f.id, key: `${f.key}`, value: f.value, description: f.description, tag: 'Form' })))}
+                </div>
+            ) : '';
         } else {
             return body ? (
                 <div className="document-block">
-                    <div className="document-header-name">BODY</div>
+                    <div className="document-header-name">Request Body</div>
                     <div className="document-code">{<HighlightCode code={body || ''} />}</div>
                 </div>
             ) : '';
@@ -143,27 +276,45 @@ class DocumentContent extends React.Component<DocumentContentProps, DocumentCont
                         envs={environments[activeProjectId] || []}
                         onlyEnvSelect={true}
                     />
-                    <Button
-                        className="document-toolbar-btn"
+                    <a
+                        className="ant-btn ant-btn-primary document-toolbar-btn"
+                        role="button"
                         onClick={() => this.download()}
-                        icon="download"
-                        type="primary"
                     >
                         {LocalesString.get('Common.Download')}
-                    </Button>
+                    </a>
                 </div>
                 <div id="document-main" className="document-main">
                     {
                         sortRecords.filter(r => r.category !== RecordCategory.folder).map(record => {
                             const r = this.applyEnvironmentVariable(record);
                             return (
-                                <div key={r.id} className="document-record">
-                                    {this.recordName(r.id, r.name, r.method)}
-                                    {this.recordUrl(r.url)}
-                                    {this.recordDesc(r.description)}
-                                    {this.recordParams(r.queryStrings)}
-                                    {this.recordHeaders(r.headers)}
+                                <div key={r.id} className="document-record card">
+                                    <div className="doc-card-header">
+                                        {this.recordName(r.id, r.name, r.method)}
+                                    </div>
+
+                                    {/* Basic Info Table */}
+                                    {this.renderBasicInfo(r.method, r.url, r.description)}
+
+                                    {/* Content-Type 已包含在 Parameter 中，这里不再单独显示 */}
+
+                                    {/* Parameter */}
+                                    {this.recordParameters(r.headers, r.queryStrings, r.formDatas)}
+
+                                    {/* Request Body or Form */}
                                     {this.recordBody(r.dataMode, r.body, r.formDatas)}
+
+                                    {/* Data Mutation */}
+                                    {this.renderDataMutation()}
+
+                                    {/* Sample output */}
+                                    <div className="section">
+                                        <div className="section-title">Sample output</div>
+                                        <div className="document-code sample-output">
+{<HighlightCode code={JSON.stringify({ status: 'success', err_code: '', err_msg: '', data: null }, null, 2)} />}
+                                        </div>
+                                    </div>
                                 </div>
                             );
                         })
@@ -248,7 +399,7 @@ class DocumentContent extends React.Component<DocumentContentProps, DocumentCont
         if (!collectionId || !this.props.records[collectionId]) {
             return [];
         }
-        let sortRecords = _.chain(this.props.records[collectionId]).values<DtoRecord>().sortBy(['category', 'name']).value();
+        let sortRecords = _.chain(this.props.records[collectionId]).values().sortBy(['category', 'name']).value() as DtoRecord[];
         let topLvRecords = sortRecords.filter(r => !r.pid);
         for (let i = topLvRecords.length - 1; i >= 0; i--) {
             if (topLvRecords[i].category === RecordCategory.folder) {
