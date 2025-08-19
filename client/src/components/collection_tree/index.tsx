@@ -133,6 +133,32 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
     private currentNewFolder: DtoBaseItem | undefined;
     private folderRefs: _.Dictionary<RecordFolder | null> = {};
     private newCollectionNameRef: Input | null;
+    private psContainer: HTMLElement | null = null;
+
+    // 拖拽自动滚动：根据鼠标位置靠近顶部/底部时自动滚动容器
+    private onTreeDragOver = (e: React.DragEvent) => {
+        if (!this.psContainer) { return; }
+        const rect = this.psContainer.getBoundingClientRect();
+        const y = e.clientY;
+        const threshold = 40; // px
+        const maxSpeed = 20; // px per触发
+        if (y < rect.top + threshold) {
+            const ratio = (rect.top + threshold - y) / threshold;
+            this.psContainer.scrollTop -= Math.round(ratio * maxSpeed);
+        } else if (y > rect.bottom - threshold) {
+            const ratio = (y - (rect.bottom - threshold)) / threshold;
+            this.psContainer.scrollTop += Math.round(ratio * maxSpeed);
+        }
+        e.preventDefault();
+    }
+
+    // 请求展开指定 folder（如果未展开）
+    private requestOpenFolder = (folderId: string) => {
+        const { openKeys } = this.props;
+        if (openKeys && openKeys.indexOf(folderId) >= 0) { return; }
+        const next = [...(openKeys || []), folderId];
+        this.openKeysChanged(next);
+    }
 
     constructor(props: CollectionListProps) {
         super(props);
@@ -455,6 +481,7 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
                                 moveRecordToFolder={this.moveRecordToFolder}
                                 moveToCollection={this.moveToCollection}
                                 editCommonSetting={() => this.setState({ ...this.state, isCommonSettingDlgOpen: true, commonSettingType: 'Folder', currentOperatedFolder: r })}
+                                onHoverOpen={this.requestOpenFolder}
                                 readOnly={readOnly}
                             />
                         )}
@@ -579,8 +606,8 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
         const collections = this.getSelectedProjectCollections();
 
         return (
-            <div className="collection-tree-container">
-                <PerfectScrollbar>
+            <div className="collection-tree-container" onDragOver={this.onTreeDragOver}>
+                <PerfectScrollbar containerRef={(ref: HTMLElement | null) => { this.psContainer = ref; }}>
                     <Menu
                         className="collection-tree"
                         onOpenChange={this.openKeysChanged}

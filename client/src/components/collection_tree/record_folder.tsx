@@ -28,6 +28,9 @@ interface RecordFolderProps {
     moveToCollection(folder: DtoBaseItem, collectionId?: string);
 
     editCommonSetting();
+
+    // 拖拽悬停自动展开回调（可选）
+    onHoverOpen?: (folderId: string) => void;
 }
 
 interface RecordFolderState {
@@ -40,6 +43,7 @@ interface RecordFolderState {
 class RecordFolder extends React.Component<RecordFolderProps, RecordFolderState> {
 
     private itemWithMenu: ItemWithMenu | null;
+    private hoverOpenTimer: any;
 
     constructor(props: RecordFolderProps) {
         super(props);
@@ -100,13 +104,28 @@ class RecordFolder extends React.Component<RecordFolderProps, RecordFolderState>
 
     private dragOver = (e) => {
         e.preventDefault();
-        if (this.checkTransferFlag(e, 'record')) {
-            this.setState({ ...this.state, isDragOver: true });
+        const isRecord = this.checkTransferFlag(e, 'record');
+        const isFolder = this.checkTransferFlag(e, 'folder');
+        if (isRecord || isFolder) {
+            if (!this.state.isDragOver) {
+                this.setState({ ...this.state, isDragOver: true });
+            }
+            // 悬停一段时间自动展开
+            if (!this.hoverOpenTimer && this.props.onHoverOpen) {
+                this.hoverOpenTimer = setTimeout(() => {
+                    this.hoverOpenTimer = undefined;
+                    this.props.onHoverOpen && this.props.onHoverOpen(this.props.folder.id);
+                }, 600);
+            }
         }
     }
 
     private dragLeave = () => {
         this.setState({ ...this.state, isDragOver: false });
+        if (this.hoverOpenTimer) {
+            clearTimeout(this.hoverOpenTimer);
+            this.hoverOpenTimer = undefined;
+        }
     }
 
     private drop = (e) => {
@@ -120,6 +139,10 @@ class RecordFolder extends React.Component<RecordFolderProps, RecordFolderState>
             }
         }
         this.setState({ ...this.state, isDragOver: false });
+        if (this.hoverOpenTimer) {
+            clearTimeout(this.hoverOpenTimer);
+            this.hoverOpenTimer = undefined;
+        }
     }
 
     public render() {
