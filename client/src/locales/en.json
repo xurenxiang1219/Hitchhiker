@@ -335,5 +335,6 @@
     "App.Scheduler": "Scheduler",
     "App.StressTest": "Stress test",
     "App.ApiDocument": "API document",
-    "App.Mock": "API mock"
+    "App.Mock": "API mock",
+    "Document.ExportPostman": "Export Postman JSON"
 }

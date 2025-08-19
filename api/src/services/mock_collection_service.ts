@@ -48,7 +48,7 @@ export class MockCollectionService {
         collection.owner = owner;
 
         await this.save(collection);
-        return { success: true, message: Message.get('collectionCreateSuccess') };
+        return { success: true, message: Message.get('collectionCreateSuccess'), id: collection.id } as any;
     }
 
     static async update(dtoCollection: DtoMockCollection): Promise<ResObject> {
@@ -155,5 +155,27 @@ export class MockCollectionService {
             .andWhere(whereStr, parameters)
             .orderBy('collection.name')
             .getMany();
+    }
+
+    static async ensureDefault(projectId: string, userId: string): Promise<MockCollection> {
+        const connection = await ConnectionManager.getInstance();
+        // 查已有集合
+        const existing = await this.getByProjectId(projectId);
+        if (existing && existing.length > 0) {
+            return existing[0];
+        }
+        // 无则创建默认集合
+        const collection = new MockCollection();
+        collection.id = StringUtil.generateUID();
+        collection.name = 'Default Mock';
+        collection.description = 'Auto created default mock collection';
+        collection.project = new Project();
+        collection.project.id = projectId;
+        const owner = new User();
+        owner.id = userId;
+        collection.owner = owner;
+        collection.mocks = [];
+        await connection.getRepository(MockCollection).save(collection);
+        return collection;
     }
 }

@@ -34,15 +34,150 @@ export const mainTpl = `<!DOCTYPE html>
 			overflow: auto;
 		}
 
-		.document-record {
-			padding: 16px 0;
-			border-bottom: 1px solid #e6e6e6;
-
+		/* Harmonize with in-app styles */
+		.card {
+			background: #ffffff;
+			border-radius: 10px;
+			box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+			padding: 20px 20px 12px 20px;
+			margin-bottom: 18px;
+			border: 1px solid #f0f0f0;
 		}
 
-		.document-record:last-child {
-			border-bottom: 0;
+		.section {
+			margin-bottom: 16px;
 		}
+
+		.section-title {
+			font-size: 12px;
+			font-weight: 600;
+			letter-spacing: .06em;
+			color: #6f7a89;
+			text-transform: uppercase;
+			margin: 6px 0 8px 0;
+		}
+
+		.document-record .document-block{
+			padding-bottom: 12px;
+			margin-bottom: 12px;
+			border-bottom: 1px solid #f0f0f0;
+		}
+		.document-record .document-block:last-child{ border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+
+		.doc-card-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding-bottom: 8px;
+			border-bottom: 1px dashed #eee;
+			margin-bottom: 12px;
+		}
+		.doc-card-header::after{
+			content: '';
+			display: block;
+			height: 2px;
+			width: 36px;
+			background: linear-gradient(90deg, #5b8ff9, #61d9a3);
+			border-radius: 2px;
+		}
+
+		.sample-output{
+			background: #fffbe6;
+			border: 1px solid #d9d9d9;
+			border-radius: 4px;
+			padding: 12px;
+		}
+
+		.method-badge{
+			display: inline-block;
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: .04em;
+			padding: 2px 8px;
+			border-radius: 12px;
+			margin-right: 10px;
+			border: 1px solid transparent;
+			text-transform: uppercase;
+		}
+		.method-get    { background: #e6f7ff; color: #096dd9; border-color: #91d5ff; }
+		.method-post   { background: #f6ffed; color: #237804; border-color: #b7eb8f; }
+		.method-put    { background: #fff7e6; color: #ad6800; border-color: #ffe7ba; }
+		.method-delete { background: #fff1f0; color: #a8071a; border-color: #ffa39e; }
+		.method-patch  { background: #f9f0ff; color: #531dab; border-color: #d3adf7; }
+
+		/* Parameter table styles */
+		.param-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin: 10px 0;
+		}
+		.param-table th, .param-table td {
+			border: 1px solid #e8e8e8;
+			padding: 8px 12px;
+			text-align: left;
+			vertical-align: top;
+		}
+		.param-table tbody td:last-child { border-right: 0; }
+		.param-table tbody tr:last-child td { border-bottom: 1px solid #d9d9d9; }
+		/* cell roles */
+		.param-key { width: 28%; white-space: nowrap; }
+		.param-desc { width: 42%; }
+		.param-value { width: 30%; color: #1f1f1f; }
+
+		/* Inline pills and KV tags used in Data Mutation/Parameters */
+		.inline-pill {
+			display: inline-block;
+			padding: 4px 8px;
+			border-radius: 16px;
+			background: #f5f7fa;
+			border: 1px solid #e6ebf1;
+			color: #2f3b52;
+		}
+
+		.kv-tag {
+			display: inline-block;
+			font-size: 10px;
+			font-weight: 600;
+			padding: 2px 6px;
+			border-radius: 3px;
+			margin-right: 6px;
+			border: 1px solid transparent;
+			text-transform: lowercase;
+			letter-spacing: .02em;
+		}
+		.kv-header { background: #f0f0f0; border-color: #d9d9d9; color: #666; }
+		.kv-query  { background: #f0f0f0; border-color: #d9d9d9; color: #666; }
+		.kv-form   { background: #f0f0f0; border-color: #d9d9d9; color: #666; }
+
+		/* Data Mutation type tags and optional marker */
+		.optional-tag{
+			margin-left: 6px;
+			color: #999;
+			font-weight: 600;
+		}
+		.type-tag{
+			display: inline-block;
+			font-size: 10px;
+			font-weight: 700;
+			padding: 2px 6px;
+			border-radius: 3px;
+			border: 1px solid transparent;
+			text-transform: lowercase;
+			letter-spacing: .02em;
+		}
+		.type-string { background: #fff0f6; color: #c41d7f; border-color: #ffadd2; }
+		.type-number { background: #fff7e6; color: #d48806; border-color: #ffd591; }
+		.type-boolean{ background: #f6ffed; color: #389e0d; border-color: #b7eb8f; }
+		.type-object { background: #e6f7ff; color: #096dd9; border-color: #91d5ff; }
+		.type-array  { background: #f9f0ff; color: #531dab; border-color: #d3adf7; }
+		.type-null   { background: #fafafa; color: #8c8c8c; border-color: #e8e8e8; }
+
+		/* Monospace for code-like values */
+		.mono {
+			font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+		}
+
+		/* Use .card for spacing; no .document-record overrides here */
 
 		.document-method-icon {
 			font-size: 18px;
@@ -72,6 +207,33 @@ export const mainTpl = `<!DOCTYPE html>
 			font-size: 14px;
 			margin-bottom: 12px;
 			border-bottom: 1px solid #e6e6e6;
+		}
+
+		/* Basic info table styles to match in-app */
+		.basic-info-table{
+			width: 100%;
+			border: 1px solid #d9d9d9;
+			border-collapse: collapse;
+			margin-bottom: 16px;
+			background: #fff;
+		}
+		.basic-info-table tbody tr { border-bottom: 1px solid #d9d9d9; }
+		.basic-info-table tbody tr:last-child { border-bottom: 1px solid #d9d9d9; }
+		.basic-info-table .info-key{
+			width: 120px;
+			background: #f5f5f5;
+			color: #333;
+			font-weight: 600;
+			font-size: 13px;
+			padding: 8px 12px;
+			border-right: 1px solid #d9d9d9;
+			vertical-align: top;
+		}
+		.basic-info-table .info-value{
+			padding: 8px 12px;
+			vertical-align: top;
+			word-break: break-all;
+			background: #fff;
 		}
 
 		.document-header-key {
@@ -105,6 +267,11 @@ export const mainTpl = `<!DOCTYPE html>
 			border-radius: 4px;
 			max-height: 500px;
 			overflow: auto;
+		}
+		/* make sure sample output keeps its intended background despite .document-code */
+		.document-code.sample-output{
+			background: #fffbe6;
+			border-color: #d9d9d9;
 		}
 
 		.col-2 {
@@ -299,21 +466,34 @@ export const mainTpl = `<!DOCTYPE html>
 			width: 200px;
 		}
 
+        /* Modern left sidebar */
         #aside {
             width: 360px;
             float: left;
-            padding: 16px;
-            background: #f9f9f9;
+            padding: 16px 14px;
+            background: #f7f9fc;
             overflow: auto;
             height: 100%;
             box-sizing: border-box;
+            border-right: 1px solid #eef0f3;
+            box-shadow: inset -1px 0 0 rgba(0,0,0,0.02);
         }
+
+        #aside::-webkit-scrollbar { width: 10px; height: 10px; }
+        #aside::-webkit-scrollbar-track { background: transparent; }
+        #aside::-webkit-scrollbar-thumb {
+            background-color: rgba(0,0,0,0.12);
+            border-radius: 8px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+        #aside::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.2); }
 
         #main {
             margin-left: 360px;
-			height: 100%;
-			overflow: auto;
-			padding: 0 32px;
+            height: 100%;
+            overflow: auto;
+            padding: 0 28px;
         }
     </style>
 

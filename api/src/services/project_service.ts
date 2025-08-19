@@ -11,6 +11,7 @@ import { CollectionService } from './collection_service';
 import { RecordService } from './record_service';
 import * as _ from 'lodash';
 import { EnvironmentService } from './environment_service';
+import { MockCollectionService } from './mock_collection_service';
 
 export class ProjectService {
 
@@ -87,6 +88,13 @@ export class ProjectService {
         project.members.push(user);
 
         await connection.getRepository(Project).save(project);
+
+        // 项目创建后自动确保默认 Mock 集合存在（提升开箱体验）
+        try {
+            await MockCollectionService.ensureDefault(project.id, ownerId);
+        } catch (e) {
+            // 忽略失败，不影响项目创建
+        }
 
         return { success: true, message: Message.get('projectSaveSuccess') };
     }

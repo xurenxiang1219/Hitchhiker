@@ -26,6 +26,8 @@ interface RecordItemProps {
     moveToCollection(record: DtoBaseItem, collection?: string);
 
     showTimeline();
+
+    editMock?();
 }
 
 interface RecordItemState { }
@@ -53,11 +55,17 @@ class RecordItem extends React.Component<RecordItemProps, RecordItemState> {
     }
 
     private getMenu = () => {
+        const { readOnly, editMock } = this.props;
         return (
             <Menu className="item_menu" onClick={this.onClickMenu}>
                 <Menu.Item key="duplicate">
                     <Icon type="copy" /> {Msg('Common.Duplicate')}
                 </Menu.Item>
+                {!readOnly && editMock && (
+                    <Menu.Item key="editMock">
+                        <Icon type="code" /> 编辑Mock数据
+                    </Menu.Item>
+                )}
                 <Menu.Item key="delete">
                     <Icon type="delete" /> {Msg('Common.Delete')}
                 </Menu.Item>
@@ -77,6 +85,12 @@ class RecordItem extends React.Component<RecordItemProps, RecordItemState> {
     duplicate = () => this.props.duplicateRecord();
 
     history = () => this.props.showTimeline();
+
+    editMock = () => {
+        if (this.props.editMock) {
+            this.props.editMock();
+        }
+    }
 
     private checkTransferFlag = (e, flag) => {
         return e.dataTransfer.types.indexOf(flag) > -1;

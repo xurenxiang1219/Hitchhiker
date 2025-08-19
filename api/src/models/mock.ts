@@ -61,11 +61,27 @@ export class Mock {
     @Column('mediumtext', { nullable: true })
     res: string;
 
+    // 是否启用 Mock（0/1）
+    @Column('int', { default: 0 })
+    isEnabled: number;
+
+    // 与真实接口对应的 API URL（便于联调展示）
+    @Column({ length: 2000, nullable: true })
+    apiUrl: string;
+
+    // 预览快照（保存编辑时的示例数据，前端直出）
+    @Column('mediumtext', { nullable: true })
+    preview: string;
+
     @Column('int', { nullable: true })
     sort: number;
 
     @Column('text', { nullable: true })
     description: string;
+
+    // 字段级描述信息，JSON 格式存储 { "field.path": "description" }
+    @Column({ type: 'text', nullable: true })
+    fieldDescriptions: string;
 
     @CreateDateColumn()
     createDate: Date;

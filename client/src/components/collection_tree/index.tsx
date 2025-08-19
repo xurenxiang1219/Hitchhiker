@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { connect, MapStateToPropsFactory } from 'react-redux';
-import { Menu, Dropdown, Icon, Button, Modal, TreeSelect, Input, Tooltip } from 'antd';
+import { connect } from 'react-redux';
+import { Menu, Dropdown, Icon, Button, Modal, TreeSelect, Input, Tooltip, message } from 'antd';
 import { State } from '../../state';
 import RecordFolder from './record_folder';
 import RecordItem from './record_item';
@@ -15,11 +15,15 @@ import { DeleteRecordType, SaveRecordType, RemoveTabType, MoveRecordType, SaveAs
 import { StringUtil } from '../../utils/string_util';
 import PerfectScrollbar from 'react-perfect-scrollbar';
 import { ProjectSelectedDialogMode, ProjectSelectedDialogType } from '../../misc/custom_type';
-import { getProjectsIdNameStateSelector } from './selector';
+import { getProjectsIdNameStateSelector, getDisplayCollectionSelector } from './selector';
 import { newCollectionName, allProject } from '../../misc/constants';
 import RecordTimeline from '../record_timeline';
 import { ShowTimelineType, CloseTimelineType } from '../../action/ui';
 import CommonSettingDialog from '../common_setting_dialog';
+import MockEditorModal from '../../modules/api_mock/MockEditorModal';
+import { MockMode } from '../../common/enum/mock_mode';
+import RequestManager from '../../utils/request_manager';
+import { Urls } from '../../utils/urls';
 import Msg from '../../locales';
 import './style/index.less';
 import LocalesString from '../../locales/string';
@@ -109,6 +113,19 @@ interface CollectionListState {
     currentOperatedFolder?: DtoBaseItem;
 
     commonSettingType: 'Collection' | 'Folder';
+
+    isMockEditorVisible: boolean;
+    mockEditorRecord?: DtoRecord;
+
+    // Mock editor states reused from RequestOptionPanel
+    initialTemplate?: string;
+    initialFieldDescriptions?: string;
+    initialMode?: MockMode;
+    mockEnabled?: boolean;
+    mockCollectionId?: string;
+    currentMockId?: string;
+    hasExistingMock?: boolean;
+    templateActionNonce?: number;
 }
 
 class CollectionList extends React.Component<CollectionListProps, CollectionListState> {
@@ -125,7 +142,17 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
             newCollectionName: newCollectionName(),
             shareCollectionId: '',
             isCommonSettingDlgOpen: false,
-            commonSettingType: 'Collection'
+            commonSettingType: 'Collection',
+            isMockEditorVisible: false,
+            mockEditorRecord: undefined,
+            initialTemplate: undefined,
+            initialFieldDescriptions: undefined,
+            initialMode: MockMode.template,
+            mockEnabled: false,
+            mockCollectionId: undefined,
+            currentMockId: undefined,
+            hasExistingMock: undefined,
+            templateActionNonce: 0,
         };
     }
 
@@ -247,15 +274,161 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
 
     private saveCommonSetting = (commonSetting: DtoCommonSetting) => {
         const { currentOperatedCollection, currentOperatedFolder, commonSettingType } = this.state;
-
         if (commonSettingType === 'Collection') {
             if (currentOperatedCollection) {
                 this.props.updateCollection({ ...currentOperatedCollection, commonSetting });
             }
         } else if (currentOperatedFolder) {
-            this.props.updateRecord({ ...currentOperatedFolder, ...commonSetting } as DtoRecord);
+            this.props.updateRecord({ ...currentOperatedFolder, commonSetting });
         }
         this.setState({ ...this.state, isCommonSettingDlgOpen: false });
+    }
+
+    private showMockEditor = async (record: DtoRecord) => {
+        await this.tryLoadExistingMock(record);
+        this.setState({ isMockEditorVisible: true, mockEditorRecord: record });
+    }
+
+    private hideMockEditor = () => {
+        this.setState({
+            isMockEditorVisible: false,
+            mockEditorRecord: undefined
+        });
+    }
+
+    // ===== Mock helpers (align with RequestOptionPanel) =====
+    private normalizePath = (p?: string) => {
+        if (!p) { return ''; }
+        let s = p.trim();
+        try {
+            if (/^https?:\/\//i.test(s)) {
+                const u = new URL(s);
+                s = u.pathname + (u.search || '');
+            }
+        } catch (_) { /* ignore */ }
+        if (s.startsWith('/')) s = s.slice(1);
+        return s;
+    }
+
+    private buildMockUrl = (record?: DtoRecord) => {
+        if (!record) { return ''; }
+        const normalizedPath = this.normalizePath(record.url || '');
+        if (!normalizedPath) { return ''; }
+        const cid = this.state.mockCollectionId || (record as any).collectionId;
+        const prefix = ((): string => { try { return `${window.location.origin}`; } catch { return ''; } })();
+        if (cid) {
+            return `${prefix}/api/mockapi/${cid}/${normalizedPath}`.replace(/^\/\//, '/');
+        }
+        return `${prefix}/api/mockapi/${normalizedPath}`.replace(/^\/\//, '/');
+    }
+
+    // 基于字段层级生成 path->meta 映射
+    private buildFieldDescriptions(fields: any[]): { [path: string]: { description: string; type?: string; order?: number } } {
+        const idMap: { [id: string]: any } = {};
+        fields.forEach(f => { idMap[f.id] = f; });
+        const getBaseName = (name: string) => (typeof name === 'string' ? name.split('|')[0] : '');
+        const buildPath = (f: any): string => {
+            const parts: string[] = [];
+            let cur: any = f;
+            while (cur) {
+                parts.push(getBaseName(cur.name));
+                cur = cur.parentId ? idMap[cur.parentId] : null;
+            }
+            return parts.reverse().join('.');
+        };
+        const map: { [path: string]: { description: string; type?: string; order?: number } } = {};
+        fields.forEach(f => {
+            const desc = (f.description || '').trim();
+            const path = buildPath(f);
+            if (path && (desc.length > 0 || f.type || typeof f.order === 'number')) {
+                map[path] = { description: desc, type: f.type, order: typeof f.order === 'number' ? f.order : undefined };
+            }
+        });
+        return map;
+    }
+
+    private safePretty = (content?: string) => {
+        if (!content) { return undefined; }
+        try { return JSON.stringify(JSON.parse(content), null, 2); } catch { return content; }
+    }
+
+    private async tryLoadExistingMock(record: DtoRecord) {
+        // 预清空，避免串数据
+        this.setState(s => ({
+            hasExistingMock: false,
+            initialTemplate: '',
+            initialFieldDescriptions: undefined,
+            initialMode: MockMode.template,
+            templateActionNonce: (s.templateActionNonce || 0) + 1,
+        }));
+        if (record && record.id) {
+            try {
+                const resp: any = await RequestManager.get(`${Urls.getUrl('mock')}/${record.id}`);
+                const resById = resp && typeof resp.json === 'function' ? await resp.json() : resp;
+                if (resById && resById.success && resById.result) {
+                    const existed = resById.result;
+                    const pretty = this.safePretty(existed.res);
+                    this.setState({
+                        initialTemplate: pretty,
+                        currentMockId: record.id,
+                        hasExistingMock: true,
+                        mockEnabled: !!(existed.isEnabled === 1 || existed.isEnabled === true),
+                        mockCollectionId: existed.collectionId || (record as any).collectionId,
+                        initialFieldDescriptions: existed.fieldDescriptions || undefined,
+                        initialMode: typeof existed.mode === 'number' ? existed.mode : MockMode.template,
+                    });
+                    return;
+                }
+            } catch (_) { /* treat as new */ }
+        }
+        // 未命中，则确保默认 Mock 集合ID
+        try {
+            const resp: any = await RequestManager.post(Urls.getUrl('mock/collection/ensure-default'), { projectId: this.props.selectedProject });
+            const data = resp && typeof resp.json === 'function' ? await resp.json() : resp;
+            const ensuredId = data && data.success && (data.id || (data.result && data.result.id));
+            this.setState(s => ({ currentMockId: record.id, hasExistingMock: false, mockEnabled: false, mockCollectionId: ensuredId || (record as any).collectionId, initialFieldDescriptions: undefined, initialTemplate: '', initialMode: MockMode.template, templateActionNonce: (s.templateActionNonce || 0) + 1 }));
+        } catch (_) {
+            this.setState(s => ({ currentMockId: record.id, hasExistingMock: false, mockEnabled: false, mockCollectionId: (record as any).collectionId, initialFieldDescriptions: undefined, initialTemplate: '', initialMode: MockMode.template, templateActionNonce: (s.templateActionNonce || 0) + 1 }));
+        }
+    }
+
+    private async saveMockFromTree(result: { fields: any[]; mode: MockMode; res: string; preview: string }) {
+        const record = this.state.mockEditorRecord;
+        if (!record) { message.error('无有效的 API 记录'); return; }
+        if (!record.id) { message.error('无法保存：缺少 record.id'); return; }
+        const fieldMap = this.buildFieldDescriptions(result.fields || []);
+        const payload: any = {
+            id: record.id,
+            name: record.name,
+            method: record.method,
+            apiUrl: record.url,
+            url: record.url,
+            collectionId: this.state.mockCollectionId || (record as any).collectionId,
+            pid: this.props.selectedProject,
+            mode: result.mode,
+            res: result.res,
+            isEnabled: this.state.mockEnabled ? 1 : 0,
+            preview: result.preview,
+            fieldDescriptions: JSON.stringify(fieldMap),
+        };
+        try {
+            let resp: any;
+            if (this.state.hasExistingMock) {
+                resp = await RequestManager.put(Urls.getUrl('mock'), payload);
+            } else {
+                resp = await RequestManager.post(Urls.getUrl('mock'), payload);
+            }
+            const data = resp && typeof resp.json === 'function' ? await resp.json() : resp;
+            if ((data && data.success) || (resp && resp.ok)) {
+                message.success('Mock 已保存');
+                await this.tryLoadExistingMock(record);
+                this.hideMockEditor();
+            } else {
+                message.error((data && data.message) || '保存失败');
+            }
+        } catch (e) {
+            message.error('保存失败');
+        }
     }
 
     private loopRecords = (data: DtoBaseItem[], cid: string, inFolder: boolean = false) => {
@@ -300,6 +473,7 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
                         duplicateRecord={() => this.duplicateRecord(r)}
                         deleteRecord={() => deleteRecord(r.id, records[cid])}
                         showTimeline={() => showTimeLine(r.id)}
+                        editMock={() => this.showMockEditor(r as DtoRecord)}
                         readOnly={readOnly}
                     />
                 </MenuItem>
@@ -471,7 +645,7 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
                 {
                     this.props.readOnly ? '' : (
                         <Tooltip mouseEnterDelay={1} placement="bottom" title={Msg('Collection.Create')}>
-                            <Button className="icon-btn" type="primary" icon="folder-add" onClick={this.addCollection} />
+                            <Button className="icon-btn" type="primary" htmlType="button" icon="folder-add" onClick={this.addCollection}>{null}</Button>
                         </Tooltip>
                     )
                 }
@@ -480,6 +654,7 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
     }
 
     render() {
+        const { isMockEditorVisible, mockEditorRecord } = this.state;
         return (
             <div className="collection-panel">
                 {this.collectionHeader}
@@ -487,28 +662,49 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
                 {this.props.readOnly ? '' : this.projectSelectedDialog}
                 {this.props.readOnly ? '' : this.timelineDialog}
                 {this.props.readOnly ? '' : this.commonSettingDialog}
-            </div>
-        );
-    }
+                {!this.props.readOnly && (
+                <MockEditorModal
+                    key={`${this.state.hasExistingMock ? 'exist' : 'empty'}-${String(this.state.templateActionNonce || 0)}`}
+                    visible={!!isMockEditorVisible}
+                    title={`Mock编辑器 - ${mockEditorRecord && mockEditorRecord.name ? mockEditorRecord.name : ''}`}
+                    initialData={this.state.initialTemplate}
+                    initialFieldDescriptions={this.state.initialFieldDescriptions}
+                    initialMode={this.state.initialMode || MockMode.template}
+                    mockEnabled={!!this.state.mockEnabled}
+                    mockUrl={this.buildMockUrl(mockEditorRecord)}
+                    onCancel={this.hideMockEditor}
+                    onToggleMock={(enabled) => this.setState({ mockEnabled: enabled })}
+                    onSave={(result) => this.saveMockFromTree(result)}
+                />
+            )}
+        </div>
+    );
 }
 
-const makeMapStateToProps: MapStateToPropsFactory<any, any, any> = () => {
-    const getProjects = getProjectsIdNameStateSelector();
+}
 
-    const mapStateToProps: (state: State, ownProps: OwnProps) => CollectionListStateProps = (state, ownProps) => {
-        const { collectionsInfo } = state.collectionState;
-        const { record, isShow } = state.uiState.timelineState;
-        const collections = _.chain(collectionsInfo.collections).values<DtoCollection>().sortBy('name').value();
+// 使用 factory 以便 memoized selectors
+const makeMapStateToProps = () => {
+    const selectProjects = getProjectsIdNameStateSelector();
+    const selectCollections = getDisplayCollectionSelector();
+    return (state: State, _ownProps: OwnProps): CollectionListStateProps => {
         return {
-            collections,
-            records: collectionsInfo.records,
-            projects: getProjects(state),
-            timelineRecord: record,
-            isTimelineDlgOpen: isShow,
-            ...ownProps
-        };
+            // 来自 OwnProps 的字段由上层传入并合并，这里只返回 state 驱动的字段
+            readOnly: _ownProps.readOnly,
+            activeRecordType: _ownProps.activeRecordType,
+            collectionOpenKeysType: _ownProps.collectionOpenKeysType,
+            selectedProjectChangedType: _ownProps.selectedProjectChangedType,
+            activeKey: _ownProps.activeKey,
+            openKeys: _ownProps.openKeys,
+            selectedProject: _ownProps.selectedProject,
+
+            collections: selectCollections(state),
+            records: state.collectionState.collectionsInfo.records,
+            projects: selectProjects(state),
+            timelineRecord: state.uiState.timelineState.record,
+            isTimelineDlgOpen: state.uiState.timelineState.isShow,
+        } as CollectionListStateProps;
     };
-    return mapStateToProps;
 };
 
 const mapDispatchToProps = (dispatch: any): CollectionListDispatchProps => {

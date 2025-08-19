@@ -40,6 +40,12 @@ export class MockService {
         mock.category = target.category;
         mock.dataMode = target.dataMode;
         mock.res = target.res;
+        // 新增字段映射：开启状态、API URL、预览快照
+        (mock as any).isEnabled = (target as any).isEnabled ? 1 : 0;
+        (mock as any).apiUrl = (target as any).apiUrl;
+        (mock as any).preview = (target as any).preview;
+        // 字段级描述映射（JSON 字符串或对象，按原样透传存储）
+        (mock as any).fieldDescriptions = (target as any).fieldDescriptions;
         mock.queryStrings = this.handleArray(target.queryStrings, mock.id, QueryStringService.fromDto);
         mock.formDatas = this.handleArray(target.formDatas, mock.id, FormDataService.fromDto);
         return mock;
@@ -61,7 +67,10 @@ export class MockService {
     }
 
     static toDto(target: Mock): DtoMock {
-        return <DtoMock><any>{ ...target, collectionId: target.collection.id };
+        // 有些查询（例如 getById(includeHeaders=true)）未联接 collection
+        // 为避免空引用，这里优先从关系中取 id，缺省则从原始字段回退
+        const collectionId = (target as any)?.collection?.id || (target as any).collectionId;
+        return <DtoMock><any>{ ...target, collectionId };
     }
 
     static clone(mock: Mock): Mock {
@@ -215,11 +224,36 @@ export class MockService {
         if (!mock.name) {
             return { success: false, message: Message.get('recordCreateFailedOnName') };
         }
+        // 强制要求传入 id（与 Record.id 一致），未传则拒绝保存
         if (!mock.id) {
-            mock.id = StringUtil.generateUID();
+            return { success: false, message: Message.get('mockIdRequired') } as any;
         }
 
         const connection = await ConnectionManager.getInstance();
+        // 校验 collection 是否存在，避免外键错误
+        const collId = (mock.collection && mock.collection.id) || (mock as any).collectionId;
+        if (!collId) {
+            return { success: false, message: Message.get('mockCollectionIdMissing') };
+        }
+        const exists = await connection.getRepository(MockCollection).findOne({ where: { id: collId } });
+        if (!exists) {
+            return { success: false, message: Message.get('mockCollectionNotExist') };
+        }
+        // 解析项目ID：优先使用传入的 pid（即 projectId）；若没有，则通过集合拿到 projectId
+        let projectId = mock.pid;
+        if (!projectId && exists && (exists as any).project) {
+            projectId = (exists as any).project.id;
+        } else if (!projectId) {
+            // 兜底再查一次带关系
+            const collWithProject = await connection.getRepository(MockCollection).findOne({ where: { id: collId }, relations: ['project'] });
+            projectId = collWithProject && (collWithProject as any).project && (collWithProject as any).project.id;
+        }
+        if (projectId) {
+            mock.pid = projectId; // 规范化落库
+        }
+
+
+        // 直接 save：TypeORM 会根据主键决定 insert 或 update
         await connection.getRepository(Mock).save(mock);
         return { success: true, message: Message.get('recordSaveSuccess') };
     }
@@ -264,24 +298,76 @@ export class MockService {
         });
     }
 
-    static async getMockRes(method: string, url: string): Promise<ResObject> {
+    static async getMockRes(method: string, url: string, collectionId?: string): Promise<ResObject> {
         const connection = await ConnectionManager.getInstance();
-        const mocks = await connection.getRepository(Mock)
+
+        // 规范化：url 可能是 'mockapi/<path>'，数据库里有历史数据保存为绝对 URL
+        // 我们尝试三种匹配：
+        // 1) 完全等于传入 url
+        // 2) 等于去掉 'mockapi/' 前缀后的纯路径（前面补一个 '/')
+        // 3) 以该纯路径结尾（LIKE %/<path>）以兼容绝对 URL
+        const raw = url || '';
+        const pathOnly = raw.replace(/^mockapi\//i, '');
+        const pathWithSlash = pathOnly.startsWith('/') ? pathOnly : ('/' + pathOnly);
+        const likeTail = `%${pathWithSlash}%`;
+        // For compatibility: if pathOnly contains a leading collectionId segment, also build matches without it
+        const withoutCid = pathOnly.replace(/^[^/]+\//, '');
+        const pathOnlyNoCid = withoutCid;
+        const pathWithSlashNoCid = pathOnlyNoCid.startsWith('/') ? pathOnlyNoCid : ('/' + pathOnlyNoCid);
+        const likeTailNoCid = `%${pathWithSlashNoCid}%`;
+
+        const qb = connection.getRepository(Mock)
             .createQueryBuilder('mock')
-            .where('mock.method=:method', { method })
-            .where('mock.url=:url', { url })
-            .orderBy('updateDate', 'DESC')
-            .getMany();
+            .where('UPPER(mock.method) = :methodUpper', { methodUpper: (method || '').toUpperCase() })
+            .andWhere('(' +
+                'mock.url = :urlExact OR ' +
+                'mock.url = :pathOnly OR ' +
+                'mock.url LIKE :likeTail OR ' +
+                'mock.url = :pathOnlyNoCid OR ' +
+                'mock.url LIKE :likeTailNoCid' +
+            ')', {
+                urlExact: raw,
+                pathOnly: pathOnly,
+                likeTail,
+                pathOnlyNoCid,
+                likeTailNoCid,
+            })
+            .orderBy('mock.updateDate', 'DESC');
+
+        // Optional filter by collection to avoid cross-project collision
+        if (collectionId) {
+            qb.andWhere('mock.collectionId = :cid', { cid: collectionId });
+        }
+
+        const mocks = await qb.getMany();
 
         if (mocks.length === 0) {
             return { success: false, message: 'can not find api which match this method and url' };
         }
 
         const mock = mocks[0];
+        const rawRes = mock.res;
+        const tryParseJSON = (val: any) => {
+            if (typeof val !== 'string') { return val; }
+            try { return JSON.parse(val); } catch { return val; }
+        };
+
+        // 先把存储的字符串尝试解析成对象
+        const parsedStored = tryParseJSON(rawRes);
+
         if (mock.mode === MockMode.nativelData) {
-            return { success: true, message: '', result: mock.res };
+            // 原生数据模式：直接返回解析后的对象/原值
+            return { success: true, message: '', result: parsedStored };
         }
 
-        return { success: true, message: '', result: Mockjs.mock(mock.res) };
+        // 模板模式：优先用对象模板生成，更稳定
+        const mocked = Mockjs.mock(parsedStored);
+        const normalized = tryParseJSON(mocked);
+        console.log("===    ===")
+        console.log("pathOnly", pathOnly);
+        console.log("mocked", mocked);
+        console.log("normalized", normalized);
+        console.log("===    ===")
+        return { success: true, message: '', result: normalized };
     }
 }

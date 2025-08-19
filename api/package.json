@@ -55,7 +55,9 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc -p . && mkdir -p build/locales && cp -R src/locales/* build/locales/"
+    "build": "tsc -p . && mkdir -p build/locales && cp -R src/locales/* build/locales/",
+    "start":"node build/index.js",
+    "dev":"tsc -p . && mkdir -p build/locales && cp -R src/locales/* build/locales/ && node build/index.js"
   },
   "repository": {
     "type": "git",

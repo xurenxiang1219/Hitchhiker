@@ -335,5 +335,6 @@
     "App.Scheduler": "自动化测试",
     "App.StressTest": "压力测试",
     "App.ApiDocument": "API文档",
-    "App.Mock": "API Mock"
+    "App.Mock": "API Mock",
+    "Document.ExportPostman": "导出 Postman JSON"
 }

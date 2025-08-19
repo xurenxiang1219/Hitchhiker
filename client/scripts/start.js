@@ -160,19 +160,6 @@ function addMiddleware(devServer) {
   // `proxy` lets you to specify a fallback server during development.
   // Every unrecognized request will be forwarded to it.
   var proxy = require(paths.appPackageJson).proxy;
-  devServer.use(historyApiFallback({
-    // Paths with dots should still use the history fallback.
-    // See https://github.com/facebookincubator/create-react-app/issues/387.
-    disableDotRule: true,
-    // For single page apps, we generally want to fallback to /index.html.
-    // However we also want to respect `proxy` for API calls.
-    // So if `proxy` is specified, we need to decide which fallback to use.
-    // We use a heuristic: if request `accept`s text/html, we pick /index.html.
-    // Modern browsers include text/html into `accept` header when navigating.
-    // However API calls like `fetch()` won’t generally accept text/html.
-    // If this heuristic doesn’t work well for you, don’t use `proxy`.
-    htmlAcceptHeaders: proxy ? ['text/html'] : ['text/html', '*/*']
-  }));
   if (proxy) {
     if (typeof proxy !== 'string') {
       console.log(chalk.red('When specified, "proxy" in package.json must be a string.'));
@@ -215,6 +202,15 @@ function addMiddleware(devServer) {
     // an initial plain HTTP request is made.
     devServer.listeningApp.on('upgrade', hpm.upgrade);
   }
+
+  // After proxy is registered, apply SPA fallback for non-API routes
+  devServer.use(historyApiFallback({
+    disableDotRule: true,
+    htmlAcceptHeaders: proxy ? ['text/html'] : ['text/html', '*/*'],
+    rewrites: [
+      { from: /^(?!\/api\/).*/, to: '/index.html' }
+    ]
+  }));
 
   // Finally, by now we have certainly resolved the URL.
   // It may be /index.html, so let the dev server try serving it again.
