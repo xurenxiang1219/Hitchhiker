@@ -164,6 +164,7 @@ class RequestUrlPanel extends React.Component<RequestUrlPanelProps, RequestUrlPa
 
     private sendRequest = () => {
         const { record, environment } = this.props;
+        console.log("sendRequest....")
         this.props.sendRequest(environment, this.applyAllVariables({
             ...record,
             headers: [...record.headers || []],

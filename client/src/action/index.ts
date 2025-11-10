@@ -3,7 +3,7 @@ import { delay } from 'redux-saga';
 import RequestManager, { SyncItem } from '../utils/request_manager';
 import { sendRequest, saveRecord, saveAsRecord, deleteRecord, moveRecord, sendRequestForParam } from './record';
 import { saveProject, quitProject, disbandProject, removeUser, inviteMember, saveEnvironment, delEnvironment, saveLocalhostMapping, saveGlobalFunction, delProjectFile } from './project';
-import { deleteCollection, saveCollection, importData } from './collection';
+import { deleteCollection, saveCollection, importData, shareCollection } from './collection';
 import { login, logout, register, findPassword, getUserInfo, changePassword, tempUse, syncUserData } from './user';
 import { storeLocalData, fetchLocalData } from './local_data';
 import { deleteSchedule, saveSchedule, runSchedule } from './schedule';
@@ -41,6 +41,7 @@ export function* rootSaga() {
         spawn(storeLocalData),
         spawn(deleteCollection),
         spawn(saveCollection),
+        spawn(shareCollection),
         spawn(importData),
         spawn(sendRequest),
         spawn(sendRequestForParam),
@@ -71,8 +72,9 @@ export function* rootSaga() {
 };
 
 function* sync() {
+    console.log("action.sync........",SyncType)
     const channel = yield actionChannel(SyncType);
-
+    console.log("sync.channel",channel)
     while (true) {
         const { syncItem } = yield take(channel);
         yield call(handleRequest, syncItem);
@@ -84,6 +86,8 @@ function* handleRequest(syncItem: SyncItem) {
     for (let i = 0; i <= Number.MAX_VALUE; i++) {
         try {
             const res = yield call(RequestManager.sync, syncItem);
+            console.log("SyncItem",syncItem)
+            console.log("handleRequest....",res)
             if (res.status === 403) {
                 yield put(actionCreator(SessionInvalidType));
             } else if (res.status >= 400) {
@@ -91,6 +95,7 @@ function* handleRequest(syncItem: SyncItem) {
             }
 
             const body = yield res.json();
+            console.log("body:",body)
             if (body && body.success === false) {
                 yield put(actionCreator(SyncFailedType, body.message));
                 return;

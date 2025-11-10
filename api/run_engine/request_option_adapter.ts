@@ -18,7 +18,7 @@ export class RequestOptionAdapter {
             cm.push('Apply localhost mapping');
             await RequestOptionAdapter.applyLocalhost(record, record.uid);
         }
-        const { reqStrictSSL, reqFollowRedirect } = record.collection || { reqStrictSSL: false, reqFollowRedirect: false };
+        const { reqStrictSSL, reqFollowRedirect ,commonSetting} = record.collection || { reqStrictSSL: false, reqFollowRedirect: false,commonSetting:{} };
         const option: Options = {
             url: StringUtil.tryAddHttpPrefix(StringUtil.fixedEncodeURI(StringUtil.stringifyUrl(record.url, record.queryStrings))),
             method: record.method,
@@ -29,11 +29,11 @@ export class RequestOptionAdapter {
             followRedirect: reqFollowRedirect,
             time: true,
             timeout: Setting.instance.requestTimeout,
+            proxy:commonSetting.req_proxy,
         };
         if (this.isRequestImg(option.headers)) {
             option.encoding = null;
         }
-
         cm.push(`Generate request options: ${this.generateOptionInfo(option)}`);
         return option;
     }
@@ -72,6 +72,7 @@ export class RequestOptionAdapter {
                 strictSSL: ${option.strictSSL}
                 followRedirect: ${option.followRedirect},
                 timeout: ${option.timeout},
-                encoding: ${option.encoding || 'none'}`;
+                encoding: ${option.encoding || 'none'},
+                proxy: ${option.proxy}`;
     }
 }

@@ -247,9 +247,16 @@ export function recordWithResState(state: DisplayRecordsState = displayRecordsDe
         }
         case SendRequestFulfilledType: {
             const id = action.value.id;
+            console.log("state:",state)
             responseState = action.value.isParamReq ? state.responseState : { ...state.responseState, [id]: { runResult: action.value.runResult } };
             const paramStatus = { ...recordStates[id].parameterStatus };
             Reflect.deleteProperty(paramStatus, 'runResult');
+            console.log("SendRequestFulfilledType 更改state.....",responseState,action)
+            console.log("change state...",{
+                ...state,
+                recordStates: { ...recordStates, [id]: { ...recordStates[id], isRequesting: _.values(paramStatus).some(s => s === RequestStatus.pending) } },
+                responseState
+            })
             return {
                 ...state,
                 recordStates: { ...recordStates, [id]: { ...recordStates[id], isRequesting: _.values(paramStatus).some(s => s === RequestStatus.pending) } },

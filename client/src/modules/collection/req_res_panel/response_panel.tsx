@@ -276,8 +276,12 @@ const mapStateToProps = (state: State): ResponsePanelStateProps => {
     const activeKey = state.displayRecordsState.activeKey;
     const { currParam, paramArr } = StringUtil.parseParameters(record.parameters, record.parameterType, recordState.parameter, record.reduceAlgorithm);
     const currParamStr = JSON.stringify(currParam);
+    console.log(activeKey)
     const resState = state.displayRecordsState.responseState[activeKey];
     const res = !resState ? undefined : (paramArr.length === 0 ? resState['runResult'] : (currParam === allParameter ? resState : resState[currParamStr]));
+    console.log("res_panel mapStateToProps:",resState)
+    console.log("res_panel res:",res)
+    console.log("res_panel state ",state)
     return {
         activeKey,
         url: StringUtil.stringifyUrl(record.url || '', record.queryStrings || []),

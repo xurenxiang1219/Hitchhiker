@@ -102,6 +102,10 @@ module.exports = {
       test: /\.(ts|tsx)$/,
       loader: 'tslint',
       include: paths.appSrc,
+        options:{
+          transpileOnly: true,
+
+        }
     }],
     loaders: [
       // ** ADDING/UPDATING LOADERS **

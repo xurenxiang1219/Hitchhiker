@@ -27,6 +27,8 @@ export interface DtoCommonSetting {
     test: string;
 
     headers: DtoHeader[];
+
+    req_proxy: string;
 }
 
 export interface DtoCollectionWithRecord {

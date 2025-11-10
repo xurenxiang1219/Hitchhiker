@@ -24,7 +24,7 @@ var env = getClientEnvironment(publicUrl);
 var cssFilename = 'static/css/[name].[contenthash:8].css';
 
 var theme = require(paths.appPackageJson).theme;
-
+console.log("__________",paths.appIndexJs)
 // This is the development configuration.
 // It is focused on developer experience and fast rebuilds.
 // The production configuration is different and lives in a separate file.
@@ -93,6 +93,9 @@ module.exports = {
       test: /\.(ts|tsx)$/,
       loader: 'tslint',
       include: paths.appSrc,
+      options:{
+        transpileOnly: true,
+      }
     }],
     noParse: /[\/\\]node_modules[\/\\]localforage[\/\\]dist[\/\\]localforage\.js$/,
     loaders: [
@@ -134,7 +137,11 @@ module.exports = {
       {
         test: /\.(ts|tsx)$/,
         include: paths.appSrc,
-        loader: 'babel!ts'
+        loader: 'babel!ts',
+        options:{
+          transpileOnly: true,
+
+        }
       },
       // "postcss" loader applies autoprefixer to our CSS.
       // "css" loader resolves paths in CSS and adds assets as dependencies.
@@ -247,7 +254,7 @@ module.exports = {
     // makes the discovery automatic so you don't have to restart.
     // See https://github.com/facebookincubator/create-react-app/issues/186
     new WatchMissingNodeModulesPlugin(paths.appNodeModules),
-    new BundleAnalyzerPlugin()
+    //new BundleAnalyzerPlugin()
   ],
   // Some libraries import Node modules but don't use them in the browser.
   // Tell Webpack to provide empty mocks for them so importing them works.
@@ -255,5 +262,6 @@ module.exports = {
     fs: 'empty',
     net: 'empty',
     tls: 'empty'
-  }
+  },
+  debug:true
 };

@@ -1,10 +1,11 @@
 import React from 'react';
-import { Modal, Tabs, Badge, Dropdown, Icon, Button, Menu } from 'antd';
+import { Modal, Tabs, Badge, Dropdown, Icon, Button, Menu,Input } from 'antd';
 import Editor from '../editor';
 import { DtoCommonSetting } from '../../../../api/interfaces/dto_collection';
 import { nameWithTag } from '../name_with_tag/index';
 import { normalBadgeStyle } from '../../style/theme';
 import Msg from '../../locales';
+import LoInput from '../../locales/input'
 import KeyValueList from '../key_value';
 import { KeyValueEditMode, KeyValueEditType } from '../../common/custom_type';
 import { getTestSnippets } from '../../common/test_snippet';
@@ -74,6 +75,7 @@ class CommonSettingDialog extends React.Component<CommonSettingDialogProps, Comm
     );
 
     private changeCommonSetting = (newSetting: any) => {
+        console.log("changeCommonSetting",newSetting)
         this.setState({ ...this.state, commonSetting: { ...this.state.commonSetting, ...newSetting } });
     }
 
@@ -108,10 +110,10 @@ class CommonSettingDialog extends React.Component<CommonSettingDialogProps, Comm
     }
 
     public render() {
-
+        console.log(this.state)
         const { type, isOpen, onOk, onCancel } = this.props;
         const { activeTabKey, commonSetting, headersEditMode } = this.state;
-        const { headers, prescript, test } = commonSetting;
+        const { headers, prescript, test, req_proxy } = commonSetting;
 
         return (
             <Modal
@@ -158,6 +160,15 @@ class CommonSettingDialog extends React.Component<CommonSettingDialogProps, Comm
                         key="test"
                     >
                         <Editor type="javascript" height={300} fixHeight={true} value={test} onChange={v => this.changeCommonSetting({ 'test': v })} />
+                    </TabPane>
+                    <TabPane tab={(
+                     <Badge style={normalBadgeStyle} dot={!!prescript && prescript.length > 0} count="">
+                        {Msg('Collection.Proxy')}
+                    </Badge>   
+                    )} key="proxy">
+                            <LoInput placeholderId="Collection.Proxy" value={req_proxy} onChange={v => {
+                            this.changeCommonSetting({ 'req_proxy': v.currentTarget.value })
+                        }}/>
                     </TabPane>
                 </Tabs>
             </Modal>

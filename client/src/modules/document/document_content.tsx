@@ -151,6 +151,14 @@ class DocumentContent extends React.Component<DocumentContentProps, DocumentCont
                     >
                         {LocalesString.get('Common.Download')}
                     </Button>
+                    <Button
+                        className="document-toolbar-btn_json"
+                        onClick={() => this.downloadJSON()}
+                        icon="download"
+                        type="primary"
+                    >
+                        {LocalesString.get('Common.Download_json')}
+                    </Button>
                 </div>
                 <div id="document-main" className="document-main">
                     {
@@ -264,16 +272,125 @@ class DocumentContent extends React.Component<DocumentContentProps, DocumentCont
     }
 
     private download = () => {
-        const doc = (document.getElementById('document-main') || { innerHTML: '' }).innerHTML;
+       
         const activeCollection = this.getActiveCollection(this.props);
 
         if (!activeCollection) {
             return;
         }
-
+        const doc = (document.getElementById('document-main') || { innerHTML: '' }).innerHTML;
         const data = { doc, collectionName: activeCollection.name, records: this.getSortedRecords(activeCollection.id, true) };
 
         DownloadUtil.download('document.html', TemplateUtil.apply(mainTpl, data), '');
+    }
+    private downloadJSON = () => {
+        
+        const activeCollection = this.getActiveCollection(this.props);
+        
+        if (!activeCollection) {
+            return;
+        }
+        //const doc = (document.getElementById('document-main') || { innerHTML: '' }).innerHTML;
+        let activeEnv=this.props.activeEnv,records=this.getSortedRecords(activeCollection.id, true);
+        //const data = { doc, collectionName: activeCollection.name, records: this.getSortedRecords(activeCollection.id, true) };
+        console.log(this.props)
+        console.log(activeCollection)
+
+        let json = {
+            "item": [],
+            "variable":[]
+        };
+        const env = (this.props.environments[activeCollection.projectId] || []).find(function (t) { return t.id === activeEnv[activeCollection.projectId] })
+        let { headers } = activeCollection.commonSetting;
+        if (headers) {
+            // @ts-ignore
+            json.variable = [...headers, ...(env ? env.variables : [])].map(h => { return { key: h.key, value: h.value, type: 'string', description: h.description, disabled: !h.isActive } })
+            // @ts-ignore
+            json.event = [{
+                listen: "prerequest",
+                script: {
+                    type: "text/javescript",
+                    exec: headers.map(h => { return `pm.request.headers.add({key:'${h.key}',value:pm.variables.get('${h.key}')})` })
+                }
+            }]
+        }
+        records.map(r=>{
+            console.log(r)
+            if (!json['info']) {
+                // let { collection } = r;
+                //console.log('--->', collection.commonSetting.headers)
+                json['info'] = {
+                    "_postman_id": activeCollection.id,
+                    "name": activeCollection.name,
+                    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+                };
+            }
+            let item = { name: r.name }, temp = {}
+            // @ts-ignore
+            if (r.children.length > 0) {
+                item['item'] = [];
+                //console.log('children', r.children)
+                // @ts-ignore
+                r.children.map(c => {
+                    item['item'].push({ name: c.name, ...this.processRecord(c) })
+                })
+
+            } else {
+                // @ts-ignore
+                temp = this.processRecord(r)
+            }
+            //@ts-ignore
+            json.item.push({ ...item, ...temp });
+
+        })
+
+
+
+
+        DownloadUtil.download(activeCollection.name+'.postman_collection.json', JSON.stringify(json), '');
+    }
+    // @ts-ignore
+    private processRecord=(r)=>{
+        let { url = "" } = r;
+        let temp = {
+            request: {
+                method: r.method,
+                header: r.headers.map(h => { return { key: h.key, value: h.value, disabled: !h.isActive, description: h.description } }),
+                url: {
+                    protocol:'http',
+                    raw: url,
+                    query: r.queryStrings.map(q => { return { key: q.key, value: q.value, disabled: !q.isActive, description: q.description } }),
+                    host:[],
+                    path:[]
+                },
+                body:{}
+
+            }
+        }
+
+        if (r.method == "POST" || r.method == "DELETE" || r.method == "PUT") {
+            if (r.dataMode == 1) {
+                temp.request.body = {
+                    mode: "raw",
+                    raw: r.body,
+                    description: r.description
+                }
+            } else {
+                temp.request.body = {
+                    mode: "urlencoded",
+                    urlencoded: r.formDatas.map(f => { return { key: f.key, value: f.value, 'type': 'text' } }),
+                    description: r.description
+                }
+            }
+        }
+        if (url) {
+            temp.request.url.protocol = url.startsWith("{{") ? "" : url.startsWith("https://") ? "https" : "http";
+            url = url.replace("http://", "").replace("https://", "");
+            temp.request.url.host = url.substring(0, url.indexOf('/')).split(".");
+            temp.request.url.path = url.substring(url.indexOf("/")).split("/");
+            return temp;
+
+        }
     }
 
     public render() {
@@ -289,6 +406,7 @@ class DocumentContent extends React.Component<DocumentContentProps, DocumentCont
 }
 
 const mapStateToProps = (state: State): DocumentContentStateProps => {
+    console.log("document_content_state:",state)
     const { collectionsInfo } = state.collectionState;
     const { documentActiveRecord, documentCollectionOpenKeys, scrollTop, changeByScroll, activeEnv } = state.documentState;
 

@@ -26,6 +26,7 @@ export function* shareCollection() { // TODO: improve: share collection with env
     yield takeEvery(ShareCollectionType, function* (action: any) {
         const { collectionId, projectId } = action.value;
         const channelAction = syncAction({ type: ShareCollectionType, method: HttpMethod.GET, url: Urls.getUrl(`collection/share/${collectionId}/to/${projectId}`) });
+        console.log('shareCollection Action .',channelAction)
         yield put(channelAction);
     });
 }

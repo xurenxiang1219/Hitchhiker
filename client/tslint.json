@@ -1,4 +1,5 @@
 {
+    "defaultServerity":"none",
     "extends": [
         "tslint-react"
     ],

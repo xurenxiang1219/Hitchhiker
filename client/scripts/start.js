@@ -52,17 +52,18 @@ if (isSmokeTest) {
 }
 
 function setupCompiler(host, port, protocol) {
+  console.log("333333333333")
   // "Compiler" is a low-level interface to Webpack.
   // It lets us listen to some events and provide our own custom messages.
   compiler = webpack(config, handleCompile);
-
+  console.log("??????????????")
   // "invalid" event fires when you have changed a file, and Webpack is
   // recompiling a bundle. WebpackDevServer takes care to pause serving the
   // bundle, so if you refresh, it'll wait instead of serving the old one.
   // "invalid" is short for "bundle invalidated", it doesn't imply any errors.
   compiler.plugin('invalid', function() {
     if (isInteractive) {
-      clearConsole();
+     // clearConsole();
     }
     console.log('Compiling...');
   });

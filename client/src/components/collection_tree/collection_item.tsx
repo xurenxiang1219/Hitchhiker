@@ -87,9 +87,9 @@ class CollectionItem extends React.Component<CollectionItemProps, CollectionItem
                 <Menu.Item key="createRecord">
                     <Icon type="file" /> {Msg('Collection.CreateRequest')}
                 </Menu.Item>
-                {/*<Menu.Item key="share">
+                {<Menu.Item key="share">
                     <Icon type="share-alt" /> Share
-                </Menu.Item>*/}
+                </Menu.Item>}
                 <Menu.Item key="commonSetting">
                     <Icon type="code-o" /> {Msg('Collection.commonSetting')}
                 </Menu.Item>

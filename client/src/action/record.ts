@@ -56,6 +56,7 @@ export function* sendRequest() {
         }
         RequestManager.removeCanceledRequest(record.id);
         let runResult: Partial<RunResult> = {};
+        console.log("sendRequestAction...",action)
         if (isParamReq) {
             yield all(Object.keys(value.record).map(k => put(actionCreator(SendRequestForParamType, { param: k, content: { environment: action.value.environment, record: { ...value.record[k], history: [] } } }))));
         } else {
@@ -68,6 +69,7 @@ export function* sendRequest() {
                     return;
                 }
                 runResult = yield res.json();
+                console.log("runResult:",runResult)
                 if (runResult.consoleMsgQueue) {
                     runResult.consoleMsgQueue.forEach(m => console[m.type] && console[m.type](m.message));
                 }
@@ -83,6 +85,7 @@ export function* sendRequestForParam() {
     yield takeEvery(SendRequestForParamType, function* (action: any) {
         const value = action.value;
         let runResult: Partial<RunResult> = {};
+        console.log("sendRequestForParam...",action)
         try {
             RequestManager.removeCanceledRequest(value.content.record.id);
             const res = yield call(RequestManager.post, Urls.getUrl(`record/run`), { ...value.content, record: { ...value.content.record, history: [] } });
@@ -93,6 +96,7 @@ export function* sendRequestForParam() {
                 return;
             }
             runResult = yield res.json();
+            console.log("runResult:",runResult)
             if (runResult.consoleMsgQueue) {
                 runResult.consoleMsgQueue.forEach(m => console[m.type] && console[m.type](m.message));
             }
@@ -105,6 +109,7 @@ export function* sendRequestForParam() {
 
 export function* saveRecord() {
     yield takeEvery(SaveRecordType, pushSaveRecordToChannel);
+ 
 }
 
 export function* saveAsRecord() {

@@ -40,7 +40,12 @@ class LoginPanel extends React.Component<LoginProps, LoginPanelState> {
         const { loginState } = this.props;
         if (loginState.message && loginState.status === RequestStatus.failed) {
             this.props.checkSessionFinish();
-            this.props.resetLogin();
+            //this.props.resetLogin();
+            this.props.form.validateFields((err, values) => {
+                if (!err) {
+                    this.props.signIn(values);
+                }
+            });
             if (!this.props.isCheckingSessionValid) {
                 message.warning(loginState.message, 3);
             }
@@ -66,7 +71,8 @@ class LoginPanel extends React.Component<LoginProps, LoginPanelState> {
                     </div>
                     {
                         getFieldDecorator('email', {
-                            initialValue: this.props.lastLoginName,
+                            //initialValue: this.props.lastLoginName,
+                            initialValue: "kingxu@midland.com.cn",
                             rules: [{ required: true, message: LocalesString.get('Login.EnterEmail') }],
                         })
                             (
@@ -86,6 +92,7 @@ class LoginPanel extends React.Component<LoginProps, LoginPanelState> {
                     </div>
                     {
                         getFieldDecorator('password', {
+                            initialValue:'xiaocong520',
                             rules: [{ required: true, message: LocalesString.get('Login.EnterPassword') }],
                         })
                             (

@@ -9,15 +9,18 @@ var gulp = require('gulp'),
 gulp.task('build', ['copyTemplate', 'copyGlobalData', 'copyLocales', 'createBackupFolder']);
 
 gulp.task('package', ['release'], function () {
+    console.log("||||||||||||package")
     const keepFiles = ['build', 'node_modules', 'appconfig.json', 'gulpfile.js', 'logconfig.json', 'mail.json', 'pm2.json', 'sample collection.json', 'tsconfig.json'];
     const files = fs.readdirSync(__dirname);
+    
     files.forEach(f => {
         if (!keepFiles.find(fileName => f.endsWith(fileName))) {
-            fs.removeSync(f)
+            //fs.removeSync(f)
+            console.log("remove file:",f)
         }
     });
 
-    const zipPath = __dirname;
+   /*  const zipPath = __dirname;
     const zipFile = `${zipPath}.zip`;
     if (fs.existsSync(zipFile)) {
         fs.unlinkSync(zipFile);
@@ -36,7 +39,7 @@ gulp.task('package', ['release'], function () {
 
     archive.pipe(output);
     archive.directory(zipPath, false);
-    archive.finalize();
+    archive.finalize(); */
 });
 
 gulp.task('release', ['copy', 'copyTemplate', 'copyGlobalData', 'copyLocales', 'createBackupFolder']);

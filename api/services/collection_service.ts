@@ -9,6 +9,7 @@ import { DtoCollection } from '../interfaces/dto_collection';
 import { RecordService } from './record_service';
 import { ProjectService } from './project_service';
 import { Project } from '../models/project';
+import { Log } from '../utils/log';
 
 export class CollectionService {
 
@@ -169,9 +170,11 @@ export class CollectionService {
         if (!origin) {
             return { success: false, message: Message.get('collectionNotExist') };
         }
-
+        Log.info("查询到现有集合")
         const target = CollectionService.clone(origin);
         target.project = ProjectService.create(projectId);
+        Log.info('组装到新的project中去')
         await CollectionService.save(origin);
+        return {success: false,message:'share success'};
     }
 }

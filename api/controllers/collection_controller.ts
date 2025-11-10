@@ -12,6 +12,7 @@ import { RecordService } from '../services/record_service';
 import { DtoRecord } from '../interfaces/dto_record';
 import { Importer } from '../services/base/request_import';
 import { ImportType } from '../common/string_type';
+import { Log } from '../utils/log';
 
 export default class CollectionController extends BaseController {
 
@@ -49,6 +50,7 @@ export default class CollectionController extends BaseController {
 
     @GET('/collection/share/:collectionid/to/:projectid')
     async share(ctx: Koa.Context, @PathParam('collectionid') collectionId: string, @PathParam('projectid') projectId: string): Promise<ResObject> {
+        Log.info(`share controller process,${projectId},${collectionId}`);
         return await CollectionService.shareCollection(collectionId, projectId);
     }
 
@@ -56,6 +58,6 @@ export default class CollectionController extends BaseController {
     async importFromPostman(ctx: Koa.Context, @PathParam('projectid') projectId: string, @BodyParam info: any): Promise<ResObject> {
         const user = SessionService.getUser(ctx);
         await Importer.do(info, projectId, user);
-        return { success: true, message: Message.get('importPostmanSuccess') };
+        return { success: true, message: Message.get('importPostmanSuccess'),result:{code:'200'} };
     }
 }

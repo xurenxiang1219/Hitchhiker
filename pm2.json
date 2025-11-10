@@ -1,10 +1,33 @@
 {
     "apps": [{
         "name": "hitchhiker",
-        "script": "./build/index.js",
-        "watch": false,
+        "script": "index.js",
+        "watch": true,
+        "log-date-format":"YYYY-MM-DD HH:mm Z",
         "env": {
-            "HITCHHIKER_APP_HOST": "myhost"
+            "HITCHHIKER_APP_HOST": "http://10.1.96.2:9999/",
+            "HITCHHIKER_APP_PORT":9999,
+			"HITCHHIKER_DB_HOST": "10.1.96.2",
+			"HITCHHIKER_DB_PORT": "3308",
+			"MYSQL_DATABASE": "hitchhiker-prod",
+			"HITCHHIKER_DB_USERNAME": "s-hkdev",
+			"MYSQL_ROOT_PASSWORD": "G5kOKGb9Aq91rh39",
+			"HITCHHIKER_SYNC_ONOFF": "1",
+			"HITCHHIKER_SYNC_INTERVAL": "30",
+			"HITCHHIKER_SCHEDULE_STORE_UNIT": "count",
+			"HITCHHIKER_SCHEDULE_STORE_LIMIT": "50",
+			"HITCHHIKER_STRESS_COUNT": "5000",
+			"HITCHHIKER_MAIL_CUSTOM_TYPE": "smtp",
+			"HITCHHIKER_MAIL_API": "",
+			"HITCHHIKER_MAIL_SMTP_HOST": "smtp.exmail.qq.com",
+			"HITCHHIKER_MAIL_SMTP_PORT": "465",
+			"HITCHHIKER_MAIL_SMTP_USER": "kingxu@midland.com.cn",
+			"HITCHHIKER_MAIL_SMTP_PASS": "xiaoCONG520",
+			"HITCHHIKER_MAIL_SMTP_From": "kingxu@midland.com.cn",
+			"HITCHHIKER_MAIL_SMTP_NICKNAME": "King Xu",
+			"HITCHHIKER_MAIL_SMTP_TLS": "1",
+			"HITCHHIKER_MAIL_SMTP_RU": "0",
+            "HITCHHIKER_APP_LANG":"zh"
         }
     }]
 }

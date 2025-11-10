@@ -77,6 +77,7 @@
     "Common.p75": "75th",
     "Common.p50": "50th",
     "Common.Download": "download",
+    "Common.Download_json": "download Json",
 
     "Login.Desc.Title": "Api integrated testing tool for team",
     "Login.Desc.Content": "Hitchhiker is an {opensource} Restful Api integrated testing tool. You can deploy it in your local server. It make easier to manage Api with your team. {break} {break}More useful features (Document, Api Mock etc.) will come in future.",
@@ -152,6 +153,7 @@
     "Collection.ParameterRequest": "{length} requests: ",
     "Collection.Body": "Body",
     "Collection.PreRequestScript": "Pre Request Script",
+    "Collection.Proxy": "Proxy Setting",
     "Collection.Test": "Test",
     "Collection.Console": "Console",
     "Collection.AssertBaseOnUI": "Assert base on UI",

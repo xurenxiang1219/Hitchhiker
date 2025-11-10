@@ -36,6 +36,8 @@ function appUIState(state: AppUIState = appUIDefaultValue, action: any): AppUISt
 }
 
 function syncState(state: SyncState = syncDefaultValue, action: any): SyncState {
+    console.log("syncState ui .ts ",state)
+    console.log("syncAction ui .ts ",action)
     switch (action.type) {
         case SyncType: {
             const { syncCount, syncItems } = state;
@@ -47,6 +49,7 @@ function syncState(state: SyncState = syncDefaultValue, action: any): SyncState 
         case SyncSuccessType: {
             const syncItems = [...state.syncItems];
             syncItems.shift();
+            console.log("<<<<<<<<<<<<<<<<",{ ...state, syncCount: state.syncCount - 1, syncItems, message: undefined })
             return { ...state, syncCount: state.syncCount - 1, syncItems, message: undefined };
         }
         case SyncRetryType: {
@@ -99,6 +102,7 @@ function reqResUIState(state: _.Dictionary<ReqResUIState> = {}, action: any): _.
             return { ...state, [recordId]: { ...state[recordId], headersEditMode: mode } };
         }
         case SaveRecordType: {
+            console.log("ReqResUIState.....",action,state)
             const { isNew, record, oldId } = action.value;
             if (isNew && oldId) {
                 const newState = { ...state, [record.id]: { ...state[oldId] } };

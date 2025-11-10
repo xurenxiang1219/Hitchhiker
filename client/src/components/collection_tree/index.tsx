@@ -10,7 +10,7 @@ import * as _ from 'lodash';
 import { DtoCollection, DtoCommonSetting } from '../../../../api/interfaces/dto_collection';
 import { RecordCategory } from '../../common/record_category';
 import { actionCreator } from '../../action';
-import { DeleteCollectionType, SaveCollectionType } from '../../action/collection';
+import { DeleteCollectionType, SaveCollectionType, shareCollection, ShareCollectionType } from '../../action/collection';
 import { DeleteRecordType, SaveRecordType, RemoveTabType, MoveRecordType, SaveAsRecordType } from '../../action/record';
 import { StringUtil } from '../../utils/string_util';
 import PerfectScrollbar from 'react-perfect-scrollbar';
@@ -72,6 +72,8 @@ interface CollectionListDispatchProps {
     saveCollection(collection: DtoCollection);
 
     updateCollection(collection: DtoCollection);
+
+    shareCollection(collectionId:string, projectId?:string);
 
     duplicateRecord(record: DtoRecord);
 
@@ -239,7 +241,11 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
 
     private shareCollection = () => {
         // TODO: share
-        console.log('share');
+       // console.log('share',this.state);
+        let {shareCollectionId, selectedProjectInDlg}=this.state;
+        this.props.shareCollection(shareCollectionId,selectedProjectInDlg);
+        //alert('TODO: share')
+        this.setState({...this.state,isProjectSelectedDlgOpen:false});
     }
 
     private saveCommonSetting = (commonSetting: DtoCommonSetting) => {
@@ -328,7 +334,7 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
             if (!currentOperatedFolder) {
                 return;
             }
-            commonSetting = { prescript: currentOperatedFolder.prescript || '', headers: currentOperatedFolder.headers || [], test: currentOperatedFolder.test || '' };
+            commonSetting = { prescript: currentOperatedFolder.prescript || '', headers: currentOperatedFolder.headers || [], test: currentOperatedFolder.test || '' ,req_proxy:''};
         }
 
         return (
@@ -343,7 +349,10 @@ class CollectionList extends React.Component<CollectionListProps, CollectionList
     }
 
     private get projectSelectedDialog() {
+        
         const { projectSelectedDlgMode, isProjectSelectedDlgOpen } = this.state;
+        console.log('projectSelectedDlgMode',projectSelectedDlgMode)
+        console.log("share state",this.state)
         const description = ProjectSelectedDialogType.getDescription(projectSelectedDlgMode);
         return (
             <Modal
@@ -525,6 +534,7 @@ const mapDispatchToProps = (dispatch: Dispatch<{}>): CollectionListDispatchProps
         updateCollection: (collection) => { dispatch(actionCreator(SaveCollectionType, { isNew: false, collection })); },
         duplicateRecord: (record) => dispatch(actionCreator(SaveAsRecordType, { isNew: true, record })),
         createRecord: (record) => dispatch(actionCreator(SaveAsRecordType, { isNew: true, record })),
+        shareCollection:(collectionId, projectId)=> dispatch(actionCreator(ShareCollectionType,{collectionId, projectId })),
         moveRecord: record => dispatch(actionCreator(MoveRecordType, { record })),
         openKeysChanged: (type, openKeys) => dispatch(actionCreator(type, openKeys)),
         selectProject: (type, projectId) => dispatch(actionCreator(type, projectId)),
